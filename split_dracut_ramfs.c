@@ -11,6 +11,7 @@
 #include <stdbool.h>
 
 #define MAGIC "070701"
+#define MAGICSIZE sizeof(MAGIC) - 1
 #define TRAILER "TRAILER!!!" // Hmm...
 
 
@@ -28,11 +29,9 @@ bool is_cpio(const char * test) {
 int main(int argc, char **argv)
 {
     FILE *f;
-    char magic[7];
+    char magic[MAGICSIZE + 1];
     char buffer[1024]; //General purpose + the size of our haystack
-    bool is_cpio_result;
-    long pos = 0;
-
+    long pos;
 
     if (argc != 2) {
         fprintf(stderr, "Usage: %s <file>\n", argv[0]);
@@ -46,13 +45,13 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-     if (fread(magic, 6, 1, f) < 6) {
-         fprintf(stderr, "Error reading signature from file '%s'\n", argv[1]);
-         fclose(f);
-         exit(1);
+    if (fread(magic, 1, MAGICSIZE, f) < MAGICSIZE) {
+        fprintf(stderr, "Error reading signature from file '%s'\n", argv[1]);
+        fclose(f);
+        exit(1);
     }
 
-    // fseek(f, 0, SEEK_SET);
+    pos = MAGICSIZE;
 
     printf("%s\n", magic);
     printf("RESULT: %s\n", is_cpio(magic) ? "true" : "false");
@@ -63,6 +62,19 @@ int main(int argc, char **argv)
     // if is_cpio is false, exit with error status
     // if TRAILER is not found, exit with error status
 
+    if (!is_cpio(magic)) {
+        fprintf(stderr, "File '%s' is missing CPIO signature", argv[1]);
+        exit(1);
+    }
+
+    size_t s, buffsize_nullzero;
+    char *head_ptr;
+
+    buffsize_nullzero = sizeof(buffer) - 2  // Reading binary data, buffer might not contain a nullzero
+    while (!feof(f)) {
+        buffer[1023] = '\0';
+        s = fread(buffer, sizeof(buffer) - 2, 1, f)
+    }
     return 0;
 }
 
