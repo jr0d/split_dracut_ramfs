@@ -13,7 +13,8 @@
 #define MAGIC "070701"
 #define MAGICSIZE sizeof(MAGIC) - 1
 #define TRAILER "TRAILER!!!" // Hmm...
-
+#define TRAILERSIZE sizeof(TRAILER)
+#define SEARCHBUFFERSIZE TRAILERSIZE * 512
 
 bool is_cpio(const char * test) {
     size_t s = sizeof(MAGIC) + 1;
@@ -23,14 +24,28 @@ bool is_cpio(const char * test) {
     
     if (result != 0)
         return false;
+    
     return true;
+}
+
+int search(char * haystack) {
+    int index, result;
+
+    for (index = 0; index < SEARCHBUFFERSIZE; index += TRAILERSIZE) {
+        result = strncmp(&haystack[index], TRAILER, TRAILERSIZE);
+        if (result==0)
+            return index;
+    }
+
+    return -1;
+
 }
 
 int main(int argc, char **argv)
 {
     FILE *f;
     char magic[MAGICSIZE + 1];
-    char buffer[1024]; //General purpose + the size of our haystack
+    char buffer[SEARCHBUFFERSIZE]; //General purpose + the size of our haystack
     long pos;
 
     if (argc != 2) {
@@ -53,27 +68,20 @@ int main(int argc, char **argv)
 
     pos = MAGICSIZE;
 
-    printf("%s\n", magic);
-    printf("RESULT: %s\n", is_cpio(magic) ? "true" : "false");
-    pos = ftell(f);
-    printf("POS: %ld\n", pos);
-
-    // is_cpio, scan for TRAILER, and cat out the initramfs
-    // if is_cpio is false, exit with error status
-    // if TRAILER is not found, exit with error status
-
     if (!is_cpio(magic)) {
         fprintf(stderr, "File '%s' is missing CPIO signature", argv[1]);
         exit(1);
     }
 
-    size_t s, buffsize_nullzero;
-    char *head_ptr;
+    int search_result;
 
-    buffsize_nullzero = sizeof(buffer) - 2  // Reading binary data, buffer might not contain a nullzero
     while (!feof(f)) {
-        buffer[1023] = '\0';
-        s = fread(buffer, sizeof(buffer) - 2, 1, f)
+        pos = ftell(f);
+        fread(buffer, 1, SEARCHBUFFERSIZE, f);
+        search_result = search(buffer);
+        if (search_result >= 0) {
+            
+        }
     }
     return 0;
 }
