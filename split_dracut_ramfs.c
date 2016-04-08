@@ -1,12 +1,11 @@
 /* Implementing skipcpio.c from the dracut project from scratch (mostly)
- * there is nothing wrong with the original implimentation, so I
+ * there is nothing wrong with the original implementation, so I
  * am using this as an opportunity to re-learn come C
  */
 
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
 #include <stdbool.h>
 
@@ -15,6 +14,7 @@
 #define TRAILER "TRAILER!!!" // Hmm...
 #define TRAILERSIZE strlen(TRAILER)
 #define BCOUNT (size_t) 512  // How many bytes to stuff
+
 
 bool is_cpio(const char * test) {
     size_t s = sizeof(MAGIC) + 1;
@@ -28,34 +28,16 @@ bool is_cpio(const char * test) {
     return true;
 }
 
-int search(char * haystack, size_t haystack_size) {
-    int index, result;
-
-    for (index = 0; index < haystack_size; index += TRAILERSIZE) {
-        result = strncmp(&haystack[index], TRAILER, TRAILERSIZE);
-        printf("INDEX: %i\n", index);
-        printf("TEST: %s, SIZE: %u\n", &haystack[index], strnlen(&haystack[index], 15));
-        if (result==0)
-            return index;
-    
-        if (result > -1 && result < 4)
-            printf("POSSIBLE: %s\n", &haystack[index]);
-    }
-
-
-    return -1;
-}
-
 
 int main(int argc, char **argv)
 {
-    printf("%i , %i\n", TRAILERSIZE, BCOUNT);
-    printf("%i\n", TRAILERSIZE * BCOUNT);
-    printf("%li\n", MAGICSIZE * (size_t) 512);
     FILE *f;
     char magic[MAGICSIZE + 1];
-    char buffer[1024]; //General purpose + the size of our haystack
-    size_t pos, endpos;
+    char *buffer;
+    buffer = (char *) malloc(1024);
+    char * buffer_head =  buffer;
+
+    size_t pos;
 
     if (argc != 2) {
         fprintf(stderr, "Usage: %s <file>\n", argv[0]);
@@ -75,52 +57,70 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    pos = MAGICSIZE;
-
     if (!is_cpio(magic)) {
         fprintf(stderr, "File '%s' is missing CPIO signature\n", argv[1]);
         fclose(f);
         exit(1);
     }
 
-    int index;
     long trailer_index;
 
     char * separator_head = TRAILER;
     char * separator_current = separator_head;
 
     while (!feof(f)) {
-        unsigned int s;
-        int result;
-        size_t buffer_index, match_index;
-        char minibuf[TRAILERSIZE + 1];
+        size_t s;
+        bool match = false;
+        size_t buffer_index;
+        size_t match_index = 0;
+                
         buffer_index = 0;
 
-        pos = ftell(f);
+        pos = (size_t) ftell(f);
         printf("POS: %li\n", pos);
         s = fread(buffer, 1, 1024, f);
-        endpos = ftell(f);
-        
-        if (s) {
-            bool match = true;
-            while (buffer_index <= s) {
-                if (*buffer == *separator_current) {
-                    match_index = 0;
-                    while (*seperator_current) {
-                        if (buffer_index == s) {
-                            fread(minibuf, 1, TRAILERSIZE-match_index, f);
-                            buffer = minibuf; // Buffers need to pointers... not arrays
-                        match &= *buffer++ == *seperator_current++;
-                        buffer_index++;
-                        if (!match) {
-                            separator_current = separator_head;
-                            break;
-                        }
-                buffer_index++;
+
+        if (!s) {
+            fprintf(stderr, "Error reading from file? Could this ever happen due to EOF? Maybe, if things were perfectly aligned");
+            fclose(f);
+            exit(1);
+        }
+
+        while (buffer_index <= s) {
+            // printf("BUFFER: %c , SEP: %c\n", *buffer, *separator_current);
+            if (*buffer == *separator_current) {
+                size_t matches = 1;
+                match = true;
+                match_index = buffer_index;
+                buffer++;
+                separator_current++;
+                while (*separator_current) {
+                    if (buffer_index == s)
+                        fread(buffer, 1, TRAILERSIZE-matches, f);
+                    match &= *buffer == *separator_current;
+                    buffer_index++;
+                    if (!match) {
+                        separator_current = separator_head;
+                        break;
+                    }
+                    printf("INSIDE BUFFER: %c\n", *buffer);
+                    buffer++;
+                    matches++;
+                    separator_current++;
+                }
             }
+
+            if (match) {
+                printf("AFTER POS: %i\n", (int) (pos + match_index));
+                break;
+            }
+            buffer++;
+            buffer_index++;
+        }
+        buffer = buffer_head;
     }
 
-    fclose(f);
+    // fclose(f);
     exit(0);
     if (!trailer_index) {
         fprintf(stderr, "Could not find '%s' in file, perhaps you don't need this?\n", TRAILER);
@@ -130,4 +130,3 @@ int main(int argc, char **argv)
     fprintf(stdout, "JOY: %li\n", trailer_index);
     return 0;
 }
-
