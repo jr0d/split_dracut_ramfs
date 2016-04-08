@@ -92,6 +92,11 @@ int main(int argc, char **argv)
                 separator_current++;
                 while (*separator_current) {
                     if (buffer_index == s)
+                        /* Untested:
+                         * If we hit the end of our buffer during a match cycle, grab some more bits from the file
+                         * NOTE: I need to reset the buffer to buffer_head to avoid over running
+                         * I should probably overwrite 's' as well.
+                         */
                         fread(buffer, 1, TRAILERSIZE-matches, f);
                     match &= *buffer == *separator_current;
                     buffer_index++;
