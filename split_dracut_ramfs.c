@@ -1,6 +1,6 @@
-/* Implementing skipcpio.c from the dracut project from scratch (mostly)
- * there is nothing wrong with the original implementation, so I
- * am using this as an opportunity to re-learn come C
+/* Implementing skipcpio.c from the dracut project from scratch (mostly).
+ * there is nothing wrong with the original implementation. I am treating
+ * this as an opportunity to re-learn some C
  */
 
 
@@ -13,7 +13,6 @@
 #define MAGICSIZE strlen(MAGIC)
 #define TRAILER "TRAILER!!!" // Hmm...
 #define TRAILERSIZE strlen(TRAILER)
-#define BCOUNT (size_t) 512  // How many bytes to stuff
 
 
 bool is_cpio(const char * test) {
@@ -38,6 +37,7 @@ int main(int argc, char **argv)
     char * buffer_head =  buffer;
 
     size_t pos;
+    size_t target_index = 0;
 
     if (argc != 2) {
         fprintf(stderr, "Usage: %s <file>\n", argv[0]);
@@ -63,8 +63,6 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    long trailer_index;
-
     char * separator_head = TRAILER;
     char * separator_current = separator_head;
 
@@ -77,7 +75,6 @@ int main(int argc, char **argv)
         buffer_index = 0;
 
         pos = (size_t) ftell(f);
-        printf("POS: %li\n", pos);
         s = fread(buffer, 1, 1024, f);
 
         if (!s) {
@@ -87,7 +84,6 @@ int main(int argc, char **argv)
         }
 
         while (buffer_index <= s) {
-            // printf("BUFFER: %c , SEP: %c\n", *buffer, *separator_current);
             if (*buffer == *separator_current) {
                 size_t matches = 1;
                 match = true;
@@ -103,7 +99,6 @@ int main(int argc, char **argv)
                         separator_current = separator_head;
                         break;
                     }
-                    printf("INSIDE BUFFER: %c\n", *buffer);
                     buffer++;
                     matches++;
                     separator_current++;
@@ -111,22 +106,24 @@ int main(int argc, char **argv)
             }
 
             if (match) {
-                printf("AFTER POS: %i\n", (int) (pos + match_index));
+                target_index = pos + match_index;
                 break;
             }
             buffer++;
             buffer_index++;
         }
+        if (match) {
+            break;
+        }
         buffer = buffer_head;
     }
 
-    // fclose(f);
-    exit(0);
-    if (!trailer_index) {
+    fclose(f);
+    if (!target_index) {
         fprintf(stderr, "Could not find '%s' in file, perhaps you don't need this?\n", TRAILER);
         exit(1);
     }
 
-    fprintf(stdout, "JOY: %li\n", trailer_index);
+    fprintf(stdout, "JOY: %li\n", target_index);
     return 0;
 }
