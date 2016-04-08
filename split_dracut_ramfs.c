@@ -33,11 +33,18 @@ int main(int argc, char **argv)
     FILE *f;
     char magic[MAGICSIZE + 1];
     char *buffer;
-    buffer = (char *) malloc(1024);
-    char * buffer_head =  buffer;
+    char *separator_current;
 
+    buffer = (char *) malloc(1024);
+
+    size_t s;
     size_t pos;
     size_t target_index = 0;
+    
+    char * separator_head = TRAILER;
+    char * buffer_head =  buffer;
+    
+    separator_current = separator_head;
 
     if (argc != 2) {
         fprintf(stderr, "Usage: %s <file>\n", argv[0]);
@@ -63,12 +70,11 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    char * separator_head = TRAILER;
-    char * separator_current = separator_head;
 
+    
     while (!feof(f)) {
-        size_t s;
         bool match = false;
+
         size_t buffer_index;
         size_t match_index = 0;
                 
@@ -117,18 +123,25 @@ int main(int argc, char **argv)
             buffer++;
             buffer_index++;
         }
+        buffer = buffer_head;
+
         if (match) {
             break;
         }
-        buffer = buffer_head;
+
     }
 
-    fclose(f);
     if (!target_index) {
         fprintf(stderr, "Could not find '%s' in file, perhaps you don't need this?\n", TRAILER);
         exit(1);
     }
+    fseek(f, target_index + TRAILERSIZE, SEEK_SET);
 
-    fprintf(stdout, "JOY: %li\n", target_index);
+    while (!feof(f)) {
+
+    }
+    fprintf(stdout, "TRAILER HEAD: %li, FILE POS: %li\n", target_index, ftell(f));
+
+    fclose(f);
     return 0;
 }
