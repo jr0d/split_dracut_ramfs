@@ -135,12 +135,21 @@ int main(int argc, char **argv)
         fprintf(stderr, "Could not find '%s' in file, perhaps you don't need this?\n", TRAILER);
         exit(1);
     }
+
     fseek(f, target_index + TRAILERSIZE, SEEK_SET);
-
+    pos = target_index + TRAILERSIZE;
     while (!feof(f)) {
-
+        s = fread(buffer, 1, 1024, f);
+        size_t i;
+        for (i = 0; i < s && buffer[i] == 0; i++);
+        if (buffer[i] != 0) {
+            pos += i;
+            fseek(f, pos, SEEK_SET);
+            break;
+        }
     }
-    fprintf(stdout, "TRAILER HEAD: %li, FILE POS: %li\n", target_index, ftell(f));
+
+    fprintf(stdout, "TRAILER HEAD: %li, FILE POS: %zu\n", target_index, pos);
 
     fclose(f);
     return 0;
