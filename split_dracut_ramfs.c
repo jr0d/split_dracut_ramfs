@@ -108,7 +108,7 @@ int main(int argc, char **argv)
                     buffer_index++;
                     if (!match) {
                         separator_current = separator_head;
-                        break;
+                        break; //goto?
                     }
                     buffer++;
                     matches++;
@@ -150,6 +150,7 @@ int main(int argc, char **argv)
     }
 
     fprintf(stdout, "TRAILER HEAD: %li, FILE POS: %zu\n", target_index, pos);
+
 
     fclose(f);
     return 0;
