@@ -108,7 +108,7 @@ int main(int argc, char **argv)
                     buffer_index++;
                     if (!match) {
                         separator_current = separator_head;
-                        break;
+                        break; //goto?
                     }
                     buffer++;
                     matches++;
