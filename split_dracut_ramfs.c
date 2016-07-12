@@ -30,7 +30,7 @@ bool is_cpio(const char * test) {
 
 int main(int argc, char **argv)
 {
-    FILE *f;
+    FILE *f, *output;
     char magic[MAGICSIZE + 1];
     char *buffer;
     char *separator_current;
@@ -46,8 +46,8 @@ int main(int argc, char **argv)
     
     separator_current = separator_head;
 
-    if (argc != 2) {
-        fprintf(stderr, "Usage: %s <file>\n", argv[0]);
+    if (argc != 3) {
+        fprintf(stderr, "Usage: %s <packed initrd> <output>\n", argv[0]);
         exit(1);
     }
 
@@ -151,6 +151,18 @@ int main(int argc, char **argv)
 
     fprintf(stdout, "TRAILER HEAD: %li, FILE POS: %zu\n", target_index, pos);
 
+    if ((output = fopen(argv[2], "w")) == NULL) {
+        fprintf(stderr, "Could not open file '%s'\n", argv[2]);
+        exit(1);
+    }
+
+    fseek(f, pos, SEEK_SET);
+
+    while(!feof(f)) {
+        s = fread(buffer, 1, 1024, f);
+        fwrite(buffer, 1, s, output);
+    }
     fclose(f);
+    fclose(output);
     return 0;
 }
